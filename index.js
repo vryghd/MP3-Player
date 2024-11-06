@@ -14,25 +14,24 @@ const music = new Audio();
 
 const songs = [
     {
-        path: 'Let_It_Breethe.mp3',
+        path: 'Assets/Let_It_Breethe.mp3',
         displayName: 'Let It Breethe',
-        cover: 'DD2.jpg',
+        cover: 'Assets/DD2.jpg',
         artist: 'Rio Da Yung OG',
     },
     {
-        path: 'Stayed_Together.mp3',
+        path: 'Assets/Stayed_Together.mp3',
         displayName: 'Stayed Together',
-        cover: 'YMC.jpg',
+        cover: 'Assets/YMC.jpg',
         artist: 'Yeat Ft. Mariah Carey',
     },
     {
-        path: 'Here_Ye_Here_Ye.mp3',
+        path: 'Assets/Here_Ye_Here_Ye.mp3',
         displayName: 'Here Ye Here Ye',
-        cover: 'Cozart.jpg',
+        cover: 'Assets/DD2.jpg',
         artist: 'Chief Keef',
     }
 ];
-
 
 let musicIndex = 0;
 let isPlaying = false;  // Fixed typo
