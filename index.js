@@ -14,27 +14,51 @@ const music = new Audio();
 
 const songs = [
     {
-        path: 'Assets/Let_It_Breethe.mp3',
+        path: 'Let_It_Breethe.mp3',
         displayName: 'Let It Breethe',
-        cover: 'Assets/DD2.jpg',
+        cover: 'DD2.jpg',
         artist: 'Rio Da Yung OG',
     },
     {
-        path: 'Assets/Stayed_Together.mp3',
+        path: 'Stayed_Together.mp3',
         displayName: 'Stayed Together',
-        cover: 'Assets/YMC.jpg',
+        cover: 'YMC.jpg',
         artist: 'Yeat Ft. Mariah Carey',
     },
     {
-        path: 'Assets/Here_Ye_Here_Ye.mp3',
+        path: 'Here_Ye_Here_Ye.mp3',
         displayName: 'Here Ye Here Ye',
-        cover: 'Assets/DD2.jpg',
+        cover: 'Cozart.jpg',
         artist: 'Chief Keef',
-    }
+    },
+    {
+        path: 'Rio Da Yung OG - By Myself (Unreleased).mp3',
+        displayName: 'By Myself',
+        cover: 'FreeRioArt.jpg',
+        artist: 'Rio Da Yung OG'
+    },
+    {
+        path: 'Colors (feat. stoneda5th & Mozzy).mp3',
+        displayName: 'Colors (feat. stoneda5th & Mozzy)',
+        cover: 'Colors (feat. stoneda5th & Mozzy).jpg',
+        artist: 'Remble'
+    },
+    {
+        path: 'Lil Keed  Realest One  Skinny Clothes (Official Audio).mp3',
+        displayName: 'Nameless',
+        cover: 'Nameless.jpg',
+        artist: 'Lil Keed'
+    },
+    {
+        path: 'Haiti4ss, 0057 Domi , 24CJ , 2WAYREGG  Temu (official music video).mp3',
+        displayName: 'Temu Pt. 2 (feat. Haiti4ss, 0057 Domi , 24CJ)',
+        cover: 'Temu Pt. 2.jpg',
+        artist: '2WAYREGG'
+    },
 ];
 
 let musicIndex = 0;
-let isPlaying = false;  // Fixed typo
+let isPlaying = false;
 
 function togglePlay() {
     if (isPlaying) {
@@ -60,7 +84,7 @@ function pauseMusic() {
 
 function loadMusic(song) {
     music.src = song.path;
-    music.load();  // Ensure the song loads properly before playing
+    music.load();
     title.textContent = song.displayName;
     artist.textContent = song.artist;
     image.src = song.cover;
@@ -83,12 +107,22 @@ function updateProgressBar() {
         durationEl.textContent = `${formatTime(duration / 60)}:${formatTime(duration % 60)}`;
         currentTimeEl.textContent = `${formatTime(currentTime / 60)}:${formatTime(currentTime % 60)}`;
     }
+    updateParallaxEffect();
 }
 
 function setProgressBar(e) {
     const width = playerProgress.clientWidth;
     const clickX = e.offsetX;
     music.currentTime = (clickX / width) * music.duration;
+}
+
+function updateParallaxEffect() {
+    const { duration, currentTime } = music;
+    if (duration) {
+        const progressPercent = (currentTime / duration) * 100;
+        const parallaxOffset = (progressPercent / 100) * 40 - 20;
+        background.style.transform = `translate(${parallaxOffset}px, ${parallaxOffset}px)`;
+    }
 }
 
 playBtn.addEventListener('click', togglePlay);
