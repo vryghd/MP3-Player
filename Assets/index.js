@@ -23,7 +23,7 @@ const songs = [
         path: 'Music/Stayed_Together.mp3',
         displayName: 'Stayed Together',
         cover: 'CoverArt/YMC.jpg',
-        artist: 'Yeat Ft. Mariah Carey',
+        artist: 'Yeat',
     },
     {
         path: 'Music/Here_Ye_Here_Ye.mp3',
@@ -62,6 +62,37 @@ const songs = [
         displayName: 'Words2LiveBy (feat. Earl Sweatshirt)',
         cover: 'CoverArt/Words2LiveBy (feat. Earl Sweatshirt).jpg',
         artist: 'El Cousteau'
+    },
+    {
+        path: 'Music/Any Time, Any Place.mp3',
+        displayName: 'Any Time, Any Place',
+        cover: 'CoverArt/Any Time, Any Place.jpg',
+        artist: 'Janet Jackson'
+    },
+    {
+        path: 'Music/Ganger.mp3',
+        displayName: 'Ganger',
+        cover: 'CoverArt/Ganger.jpg',
+        artist: 'RRoxket'
+    },
+    {
+        path: 'Music/NFL.mp3',
+        displayName: 'NFL',
+        cover: 'CoverArt/NFL.jpg',
+        artist: 'Lil Uzi Vert'
+    },
+    {
+        path: 'Music/Meg The Stallion (feat. Veeze).mp3',
+        displayName: 'Meg The Stallion (feat. Veeze)',
+        cover: 'CoverArt/Meg The Stallion (feat. Veeze).jpg',
+        artist: 'Babyface Ray'
+    },
+    
+    {
+        path: 'Music/Make A Lot Of Money .mp3',
+        displayName: 'Make A Lot Of Money',
+        cover: 'CoverArt/default_cover.jpg',
+        artist: 'Young Thug'
     },
 ];
 
@@ -151,3 +182,36 @@ music.addEventListener('timeupdate', updateProgressBar);
 playerProgress.addEventListener('click', setProgressBar);
 
 loadMusic(songs[musicIndex]);
+
+// Selecting elements
+const urlInput = document.getElementById('youtube-url');
+const downloadButton = document.getElementById('download-btn');
+
+downloadButton.addEventListener('click', () => {
+    const youtubeUrl = urlInput.value.trim();
+
+    if (!youtubeUrl) {
+        alert("Please enter a YouTube URL.");
+        return;
+    }
+
+    fetch('http://localhost:5000/download', { // URL to Flask server
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: youtubeUrl })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            console.error('Error:', data.error);
+            alert('Error downloading video.');
+        } else {
+            console.log(data.message);
+            alert('Download initiated successfully!');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while downloading.');
+    });
+});

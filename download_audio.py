@@ -1,9 +1,11 @@
 import os
+import sys
 import requests
 import yt_dlp
 from mutagen.mp3 import MP3
 from mutagen.id3 import ID3, TIT2, TPE1, APIC
 import base64
+import re
 
 # Spotify API credentials
 SPOTIFY_CLIENT_ID = "d723d8244f58499bb1f277b6307ee212"
@@ -18,12 +20,8 @@ JS_FILE_PATH = os.path.join(ASSETS_DIR, "index.js")
 def get_spotify_access_token():
     auth_url = "https://accounts.spotify.com/api/token"
     auth_header = base64.b64encode(f"{SPOTIFY_CLIENT_ID}:{SPOTIFY_CLIENT_SECRET}".encode()).decode()
-    headers = {
-        "Authorization": f"Basic {auth_header}"
-    }
-    data = {
-        "grant_type": "client_credentials"
-    }
+    headers = {"Authorization": f"Basic {auth_header}"}
+    data = {"grant_type": "client_credentials"}
     response = requests.post(auth_url, headers=headers, data=data)
     response_data = response.json()
     if 'access_token' in response_data:
@@ -31,17 +29,25 @@ def get_spotify_access_token():
     else:
         raise Exception("Failed to get Spotify access token. Check credentials.")
 
+def clean_title(title):
+    # Remove common video phrases like "official music video" or "official audio"
+    patterns = [
+        r"\bofficial music video\b",
+        r"\bofficial audio\b",
+        r"\bvideo\b",
+        r"\bfeat\b.*"  # Optional: removes "feat." or "ft." and following text
+    ]
+    for pattern in patterns:
+        title = re.sub(pattern, '', title, flags=re.IGNORECASE)
+    return title.strip()
+
 def fetch_spotify_metadata(title, artist):
+    # Clean up the title
+    cleaned_title = clean_title(title)
     access_token = get_spotify_access_token()
     search_url = "https://api.spotify.com/v1/search"
-    headers = {
-        "Authorization": f"Bearer {access_token}"
-    }
-    params = {
-        "q": f"{title} {artist}",
-        "type": "track",
-        "limit": 1
-    }
+    headers = {"Authorization": f"Bearer {access_token}"}
+    params = {"q": f"{cleaned_title} {artist}", "type": "track", "limit": 1}
     response = requests.get(search_url, headers=headers, params=params)
     data = response.json()
 
@@ -59,7 +65,11 @@ def fetch_spotify_metadata(title, artist):
             f.write(album_art_response.content)
 
         return album_art_path, track_title, track_artist
-    return None, title, artist
+    else:
+        # No exact match: Use default image and clean up artist capitalization
+        default_cover_path = os.path.join(COVER_ART_DIR, 'default_cover.jpg')
+        cleaned_artist = artist.title()  # Capitalize each word in the artist name
+        return default_cover_path, cleaned_title, cleaned_artist
 
 def download_song_and_cover(url):
     ydl_opts = {
@@ -78,25 +88,21 @@ def download_song_and_cover(url):
         info = ydl.extract_info(url, download=True)
         title = info.get('title')
         artist = info.get('uploader') or 'Unknown Artist'
-        song_filename = f"{title}.mp3"
+        song_filename = os.path.join(MUSIC_DIR, f"{title}.mp3")
 
         # Fetch metadata from Spotify
         cover_filename, track_title, track_artist = fetch_spotify_metadata(title, artist)
         if cover_filename:
-            new_song_filename = f"{track_title}.mp3".replace('/', '_')
-            new_song_path = os.path.join(MUSIC_DIR, new_song_filename)
+            new_song_filename = os.path.join(MUSIC_DIR, f"{track_title}.mp3").replace('/', '_')
+            os.rename(song_filename, new_song_filename)
 
-            # Rename MP3 file to match Spotify metadata
-            os.rename(os.path.join(MUSIC_DIR, song_filename), new_song_path)
-
-            return new_song_path, cover_filename, track_title, track_artist
+            return new_song_filename, cover_filename, track_title, track_artist
         else:
-            # If Spotify data not found, use original title
-            song_path = os.path.join(MUSIC_DIR, song_filename)
-            return song_path, 'CoverArt/default_cover.jpg', title, artist
+            # If Spotify data not found, use the original title
+            return song_filename, os.path.join(COVER_ART_DIR, 'default_cover.jpg'), title, artist
 
 def update_js_file(song_path, cover_path, display_name, artist_name):
-    # Adjust the paths so that "Assets/" is removed from the path used in index.js
+    # Adjust paths so "Assets/" is removed from paths used in index.js
     song_rel_path = os.path.relpath(song_path, ASSETS_DIR).replace('\\', '/')
     cover_rel_path = os.path.relpath(cover_path, ASSETS_DIR).replace('\\', '/')
 
@@ -121,12 +127,10 @@ def update_js_file(song_path, cover_path, display_name, artist_name):
         js_file.write(updated_content)
         js_file.truncate()
 
-def main():
-    url = input("Enter the YouTube URL: ")
-
+def main(youtube_url):
     try:
         # Download song and fetch metadata from Spotify
-        song_path, cover_path, title, artist = download_song_and_cover(url)
+        song_path, cover_path, title, artist = download_song_and_cover(youtube_url)
 
         # Update the JS file
         update_js_file(song_path, cover_path, title, artist)
@@ -135,4 +139,5 @@ def main():
         print(f"Error: {str(e)}")
 
 if __name__ == "__main__":
-    main()
+    youtube_url = sys.argv[1]  # Get the URL argument
+    main(youtube_url)
