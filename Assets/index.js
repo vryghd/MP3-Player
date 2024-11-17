@@ -94,6 +94,25 @@ const songs = [
         cover: 'CoverArt/default_cover.jpg',
         artist: 'Young Thug'
     },
+   
+    {
+        path: 'Music/Hallucinating.mp3',
+        displayName: 'Hallucinating',
+        cover: 'CoverArt/hallucinating.jpg',
+        artist: 'Future'
+    },
+    {
+        path: 'Music/ILBB2.mp3',
+        displayName: 'ILBB2',
+        cover: 'CoverArt/default_cover.jpg',
+        artist: 'Jorjiana '
+    },
+    {
+        path: 'Music/injoyable.mp3',
+        displayName: 'injoyable',
+        cover: 'CoverArt/injoyable.jpg',
+        artist: 'LAZER DIM 700'
+    },
 ];
 
 let musicIndex = 0;

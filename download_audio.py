@@ -30,12 +30,17 @@ def get_spotify_access_token():
         raise Exception("Failed to get Spotify access token. Check credentials.")
 
 def clean_title(title):
-    # Remove common video phrases like "official music video" or "official audio"
+    # Patterns to remove extraneous phrases from the title
     patterns = [
         r"\bofficial music video\b",
         r"\bofficial audio\b",
+        r"\blyrics?\b",
         r"\bvideo\b",
-        r"\bfeat\b.*"  # Optional: removes "feat." or "ft." and following text
+        r"\bfeat\b.*",         # Removes "feat." or "ft." and following text
+        r"\bhd\b",              # Removes "HD"
+        r"\bmv\b",              # Removes "MV"
+        r"\([^)]+\)",           # Removes text within parentheses
+        r"\[[^\]]+\]",          # Removes text within brackets
     ]
     for pattern in patterns:
         title = re.sub(pattern, '', title, flags=re.IGNORECASE)
@@ -47,29 +52,29 @@ def fetch_spotify_metadata(title, artist):
     access_token = get_spotify_access_token()
     search_url = "https://api.spotify.com/v1/search"
     headers = {"Authorization": f"Bearer {access_token}"}
-    params = {"q": f"{cleaned_title} {artist}", "type": "track", "limit": 1}
+    params = {"q": f"{cleaned_title} {artist}", "type": "track", "limit": 3}
     response = requests.get(search_url, headers=headers, params=params)
     data = response.json()
 
-    if data['tracks']['items']:
-        track_info = data['tracks']['items'][0]
-        track_title = track_info['name']
-        track_artist = track_info['artists'][0]['name']
-        album_art_url = track_info['album']['images'][0]['url']
+    if 'tracks' in data and data['tracks']['items']:
+        for track_info in data['tracks']['items']:
+            track_artist = track_info['artists'][0]['name'].lower()
+            track_title = track_info['name'].lower()
+            # Verify artist and title similarity
+            if artist.lower() in track_artist or artist.lower() in track_title:
+                album_art_url = track_info['album']['images'][0]['url']
+                album_art_filename = f"{track_title}.jpg".replace('/', '_')
+                album_art_path = os.path.join(COVER_ART_DIR, album_art_filename)
+                album_art_response = requests.get(album_art_url)
+                with open(album_art_path, 'wb') as f:
+                    f.write(album_art_response.content)
+                return album_art_path, track_info['name'], track_info['artists'][0]['name']
 
-        # Download album art
-        album_art_filename = f"{track_title}.jpg".replace('/', '_')
-        album_art_path = os.path.join(COVER_ART_DIR, album_art_filename)
-        album_art_response = requests.get(album_art_url)
-        with open(album_art_path, 'wb') as f:
-            f.write(album_art_response.content)
-
-        return album_art_path, track_title, track_artist
-    else:
-        # No exact match: Use default image and clean up artist capitalization
-        default_cover_path = os.path.join(COVER_ART_DIR, 'default_cover.jpg')
-        cleaned_artist = artist.title()  # Capitalize each word in the artist name
-        return default_cover_path, cleaned_title, cleaned_artist
+    # If no accurate match found, use the cleaned title and default artist format
+    default_cover_path = os.path.join(COVER_ART_DIR, 'default_cover.jpg')
+    cleaned_artist = artist.title()
+    fallback_title = clean_title(title)  # Additional cleanup for fallback title
+    return default_cover_path, fallback_title, cleaned_artist
 
 def download_song_and_cover(url):
     ydl_opts = {
@@ -98,8 +103,12 @@ def download_song_and_cover(url):
 
             return new_song_filename, cover_filename, track_title, track_artist
         else:
-            # If Spotify data not found, use the original title
-            return song_filename, os.path.join(COVER_ART_DIR, 'default_cover.jpg'), title, artist
+            # If Spotify data not found, use the cleaned fallback title
+            cleaned_fallback_title = clean_title(title)
+            fallback_filename = os.path.join(MUSIC_DIR, f"{cleaned_fallback_title}.mp3")
+            os.rename(song_filename, fallback_filename)
+
+            return fallback_filename, os.path.join(COVER_ART_DIR, 'default_cover.jpg'), cleaned_fallback_title, artist
 
 def update_js_file(song_path, cover_path, display_name, artist_name):
     # Adjust paths so "Assets/" is removed from paths used in index.js
@@ -109,7 +118,7 @@ def update_js_file(song_path, cover_path, display_name, artist_name):
     with open(JS_FILE_PATH, 'r+') as js_file:
         content = js_file.read().strip()
 
-        # Ensure there is a comma if other entries are present
+        # Ensure comma if other entries are present
         if content.endswith("}") and not content.endswith(",\n}"):
             content = content + ","
 
@@ -120,7 +129,7 @@ def update_js_file(song_path, cover_path, display_name, artist_name):
         artist: '{artist_name}'
     }},"""
 
-        # Insert the new song entry before the closing bracket
+        # Insert new song entry before the closing bracket
         updated_content = content.replace("];", f"{new_song_entry}\n];")
 
         js_file.seek(0)
